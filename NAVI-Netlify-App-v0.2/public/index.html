@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0915"><title>NAVI – Ich bin bei dir</title><link rel="stylesheet" href="/style.css"></head>
+<body><main class="app">
+  <header><button class="brand" onclick="goHome()"><i></i>NAVI</button><span class="status"><i></i> DEIN SICHERER RAUM</span><button id="sound" class="round" onclick="toggleSound()" aria-label="Klänge umschalten">♫</button></header>
+  <section id="home" class="home">
+    <div class="orb-side"><div id="bubble" class="bubble">Ich bin da.</div><div class="orbit"></div><div id="orb" class="orb"><div id="face" class="face"><i></i><i></i></div><span class="mouth"></span></div><div class="shadow"></div></div>
+    <div class="welcome"><p class="overline">DEIN EMOTIONALER BEGLEITER</p><h1>Was brauchst du<br>gerade?</h1><p class="intro">Du musst es nicht perfekt erklären. Wähle einfach, wie NAVI heute bei dir sein darf.</p><div class="modes">
+      <button onclick="openChat('listen')"><span>◌</span><b>Einfach zuhören</b><small>Ich möchte etwas loswerden</small></button>
+      <button onclick="openChat('sort')"><span>⌁</span><b>Gedanken sortieren</b><small>In meinem Kopf ist zu viel</small></button>
+      <button onclick="openChat('calm')"><span>≈</span><b>Mich beruhigen</b><small>Ich brauche kurz Halt</small></button>
+      <button onclick="openChat('plan')"><span>↗</span><b>Einen Schritt finden</b><small>Wie komme ich jetzt weiter?</small></button>
+    </div></div>
+  </section>
+  <section id="chat" class="chat hidden">
+    <div class="chathead"><button class="back" onclick="goHome()">←</button><div class="mini"><i></i><i></i></div><div><b id="modeTitle">NAVI hört zu</b><small>Kein Urteil. Kein Druck.</small></div><button class="clear" onclick="clearChat()">Neu</button></div>
+    <div id="messages" class="messages"></div>
+    <div id="crisis" class="crisis hidden"><b>Du musst da jetzt nicht allein durch.</b><span>Bei unmittelbarer Gefahr: <a href="tel:112">112</a> · TelefonSeelsorge: <a href="tel:08001110111">0800 111 0 111</a></span></div>
+    <form id="form" class="composer"><button type="button" id="mic" class="mic" onclick="startVoice()" aria-label="Spracheingabe">●</button><textarea id="input" rows="1" maxlength="3000" placeholder="Erzähl mir, was gerade da ist …"></textarea><button class="send" aria-label="Senden">↑</button></form>
+    <p class="notice">NAVI ersetzt keine Psychotherapie oder medizinische Hilfe.</p>
+  </section>
+</main><script src="/app.js"></script></body></html>
