@@ -1,17 +1,10 @@
-const SUPERTONIC_MODULE = 'https://esm.sh/gh/supertone-inc/supertonic@dff55dc00064c398736080c78195f577527832ae/web/helper.js?bundle';
-const SUPERTONIC_ONNX = 'https://huggingface.co/Supertone/supertonic-3/resolve/main/onnx';
-const SUPERTONIC_VOICES = 'https://huggingface.co/Supertone/supertonic-3/resolve/main/voice_styles';
-const FIXED_VOICE = 'F2';
-const FIXED_VOICE_LABEL = 'NAVI-Stimme';
+const FIXED_VOICE_LABEL = 'NAVI-Stimme M5';
 
 let mode = 'listen';
 let history = [];
-let voiceEnabled = localStorage.naviVoice !== 'off';
+let voiceEnabled = false;
 let audioCtx;
-let supertonic = null;
-let textToSpeech = null;
-let fixedStyle = null;
-let ttsInitPromise = null;
+let voiceWorker = null;
 let ttsState = 'idle';
 let ttsBackend = '';
 let currentAudio = null;
@@ -48,19 +41,22 @@ function setVoiceStatus(text, state = '') {
 function updateVoiceUi() {
   voiceButton.textContent = voiceEnabled ? '🔊' : '🔇';
   voiceButton.classList.toggle('active', voiceEnabled);
-  voiceButton.setAttribute('aria-label', voiceEnabled ? 'NAVI-Stimme ausschalten' : 'NAVI-Stimme einschalten');
+  voiceButton.setAttribute(
+    'aria-label',
+    voiceEnabled ? 'NAVI-Stimme ausschalten' : 'NAVI-Stimme einschalten',
+  );
   stopVoiceButton.disabled = !voiceEnabled;
 
   if (!voiceEnabled) {
-    setVoiceStatus('Feste NAVI-Stimme ist aus');
+    setVoiceStatus('Stimme ist aus · Lautsprecher zum Aktivieren');
   } else if (ttsState === 'loading') {
-    setVoiceStatus('Feste NAVI-Stimme wird geladen …', 'loading');
+    setVoiceStatus('Stimme lädt im Hintergrund …', 'loading');
   } else if (ttsState === 'ready') {
     setVoiceStatus(`${FIXED_VOICE_LABEL} bereit · ${ttsBackend}`, 'ready');
   } else if (ttsState === 'error') {
-    setVoiceStatus('Supertonic konnte nicht geladen werden · Lautsprecher zum Wiederholen tippen', 'error');
+    setVoiceStatus('Stimme konnte nicht geladen werden · erneut antippen', 'error');
   } else {
-    setVoiceStatus('Feste NAVI-Stimme wird vorbereitet …', 'loading');
+    setVoiceStatus('Stimme wird vorbereitet …', 'loading');
   }
 }
 
@@ -81,18 +77,25 @@ function openChat(next) {
   $('#crisis').classList.add('hidden');
   addMessage('navi', starters[mode]);
   input.focus();
-  void speak(starters[mode]);
 }
 
 function addMessage(role, text, typing = false) {
   const div = document.createElement('div');
   div.className = `msg ${role}${typing ? ' typing' : ''}`;
   div.textContent = text;
+
   if (role === 'navi' && !typing) {
     div.classList.add('speakable');
     div.title = 'Noch einmal vorlesen';
-    div.addEventListener('click', () => void speak(text));
+    div.addEventListener('click', () => {
+      if (voiceEnabled) {
+        void speak(text);
+      } else {
+        setVoiceStatus('Zum Vorlesen zuerst den Lautsprecher aktivieren');
+      }
+    });
   }
+
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
   return div;
@@ -125,7 +128,7 @@ $('#form').addEventListener('submit', async (event) => {
     );
     history = history.slice(-10);
     if (data.crisis) $('#crisis').classList.remove('hidden');
-    void speak(data.reply);
+    if (voiceEnabled) void speak(data.reply);
   } catch (error) {
     pending.remove();
     addMessage('navi', `${error.message} Du kannst es in einem Moment noch einmal versuchen.`);
@@ -140,12 +143,53 @@ function clearChat() {
   messages.innerHTML = '';
   $('#crisis').classList.add('hidden');
   addMessage('navi', starters[mode]);
-  void speak(starters[mode]);
+}
+
+function ensureVoiceWorker() {
+  if (voiceWorker) return voiceWorker;
+
+  voiceWorker = new Worker('/supertonic-worker.js?v=worker-20260722', { type: 'module' });
+
+  voiceWorker.onmessage = ({ data }) => {
+    if (!data || typeof data !== 'object') return;
+
+    if (data.type === 'progress') {
+      if (voiceEnabled) setVoiceStatus(data.message, 'loading');
+      return;
+    }
+
+    if (data.type === 'ready') {
+      ttsState = 'ready';
+      ttsBackend = data.backend || 'WebAssembly';
+      updateVoiceUi();
+      return;
+    }
+
+    if (data.type === 'audio') {
+      playWorkerAudio(data.id, data.buffer);
+      return;
+    }
+
+    if (data.type === 'error') {
+      console.error('Supertonic Worker:', data.detail);
+      if (data.id && data.id !== speechToken) return;
+      ttsState = 'error';
+      setVoiceStatus(`Stimmenfehler: ${data.detail || 'Unbekannter Fehler'}`.slice(0, 180), 'error');
+    }
+  };
+
+  voiceWorker.onerror = (error) => {
+    console.error('Supertonic Worker konnte nicht gestartet werden.', error);
+    ttsState = 'error';
+    setVoiceStatus('Stimmen-Worker konnte nicht gestartet werden', 'error');
+  };
+
+  return voiceWorker;
 }
 
 async function toggleVoice() {
   voiceEnabled = !voiceEnabled;
-  localStorage.naviVoice = voiceEnabled ? 'on' : 'off';
+  localStorage.setItem('naviVoice', 'off');
 
   if (!voiceEnabled) {
     stopSpeaking();
@@ -153,84 +197,11 @@ async function toggleVoice() {
     return;
   }
 
-  if (ttsState === 'error') {
-    ttsState = 'idle';
-    ttsInitPromise = null;
-  }
-
+  if (ttsState === 'error') ttsState = 'idle';
+  ttsState = ttsState === 'ready' ? 'ready' : 'loading';
   updateVoiceUi();
   tone();
-  await initializeSupertonic();
-}
-
-async function createTtsWithProvider(executionProvider) {
-  return supertonic.loadTextToSpeech(
-    SUPERTONIC_ONNX,
-    {
-      executionProviders: [executionProvider],
-      graphOptimizationLevel: 'all',
-    },
-    (modelName, current, total) => {
-      setVoiceStatus(`Lade feste Stimme ${current}/${total}: ${modelName}`, 'loading');
-    },
-  );
-}
-
-async function initializeSupertonic() {
-  if (ttsState === 'ready') return true;
-  if (ttsInitPromise) return ttsInitPromise;
-
-  ttsState = 'loading';
-  updateVoiceUi();
-
-  ttsInitPromise = (async () => {
-    supertonic = await import(SUPERTONIC_MODULE);
-
-    let result = null;
-    let webgpuError = null;
-
-    if (navigator.gpu) {
-      try {
-        setVoiceStatus('Feste Stimme: WebGPU wird vorbereitet …', 'loading');
-        result = await createTtsWithProvider('webgpu');
-        ttsBackend = 'WebGPU';
-      } catch (error) {
-        webgpuError = error;
-        console.warn('Supertonic WebGPU fehlgeschlagen, versuche WebAssembly.', error);
-      }
-    }
-
-    if (!result) {
-      setVoiceStatus('Feste Stimme: WebAssembly wird vorbereitet …', 'loading');
-      try {
-        result = await createTtsWithProvider('wasm');
-        ttsBackend = 'WebAssembly';
-      } catch (wasmError) {
-        if (webgpuError) console.warn('Vorheriger WebGPU-Fehler:', webgpuError);
-        throw wasmError;
-      }
-    }
-
-    textToSpeech = result.textToSpeech;
-    setVoiceStatus('Feste NAVI-Stimme wird geladen …', 'loading');
-    fixedStyle = await supertonic.loadVoiceStyle([
-      `${SUPERTONIC_VOICES}/${FIXED_VOICE}.json`,
-    ]);
-
-    ttsState = 'ready';
-    updateVoiceUi();
-    return true;
-  })().catch((error) => {
-    console.error('Supertonic konnte nicht initialisiert werden.', error);
-    textToSpeech = null;
-    fixedStyle = null;
-    ttsState = 'error';
-    ttsInitPromise = null;
-    updateVoiceUi();
-    return false;
-  });
-
-  return ttsInitPromise;
+  ensureVoiceWorker().postMessage({ type: 'init' });
 }
 
 function stopSpeaking() {
@@ -249,67 +220,42 @@ function stopSpeaking() {
   }
 
   orb.classList.remove('talking');
-  if (voiceEnabled) updateVoiceUi();
+  updateVoiceUi();
 }
 
 async function speak(text) {
   if (!voiceEnabled || !text) return;
 
   stopSpeaking();
-  const token = speechToken;
-
-  const ready = await initializeSupertonic();
-  if (!ready || token !== speechToken || !voiceEnabled) return;
-
-  try {
-    await speakWithSupertonic(text, token);
-  } catch (error) {
-    console.error('Supertonic-Sprachausgabe fehlgeschlagen.', error);
-    if (token === speechToken) {
-      orb.classList.remove('talking');
-      setVoiceStatus('Feste Stimme konnte diese Antwort nicht sprechen', 'error');
-    }
-  }
+  const id = speechToken;
+  ttsState = ttsState === 'ready' ? 'ready' : 'loading';
+  setVoiceStatus(ttsState === 'ready' ? 'NAVI erzeugt Sprache …' : 'Stimme lädt im Hintergrund …', 'loading');
+  ensureVoiceWorker().postMessage({ type: 'speak', id, text });
 }
 
-async function speakWithSupertonic(text, token) {
-  setVoiceStatus('NAVI erzeugt Sprache …', 'loading');
+function playWorkerAudio(id, buffer) {
+  if (!voiceEnabled || id !== speechToken || !(buffer instanceof ArrayBuffer)) return;
 
-  const { wav, duration } = await textToSpeech.call(
-    text,
-    'de',
-    fixedStyle,
-    6,
-    1.0,
-    0.22,
-  );
-
-  if (token !== speechToken || !voiceEnabled) return;
-
-  const wavLength = Math.floor(textToSpeech.sampleRate * duration[0]);
-  const wavBuffer = supertonic.writeWavFile(
-    wav.slice(0, wavLength),
-    textToSpeech.sampleRate,
-  );
-  const blob = new Blob([wavBuffer], { type: 'audio/wav' });
-
-  currentAudioUrl = URL.createObjectURL(blob);
+  if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+  currentAudioUrl = URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
   currentAudio = new Audio(currentAudioUrl);
 
   currentAudio.onplay = () => {
-    if (token !== speechToken) return;
+    if (id !== speechToken) return;
     orb.classList.add('talking');
     setVoiceStatus(`${FIXED_VOICE_LABEL} spricht`, 'ready');
   };
+  currentAudio.onended = () => finishAudio(id);
+  currentAudio.onerror = () => finishAudio(id);
 
-  currentAudio.onended = () => finishAudio(token);
-  currentAudio.onerror = () => finishAudio(token);
-
-  await currentAudio.play();
+  currentAudio.play().catch((error) => {
+    console.error('Audio konnte nicht gestartet werden.', error);
+    setVoiceStatus('Zum Abspielen bitte noch einmal auf die Antwort tippen', 'error');
+  });
 }
 
-function finishAudio(token) {
-  if (token !== speechToken) return;
+function finishAudio(id) {
+  if (id !== speechToken) return;
   orb.classList.remove('talking');
 
   if (currentAudioUrl) {
@@ -374,5 +320,5 @@ Object.assign(window, {
   startVoice,
 });
 
+localStorage.setItem('naviVoice', 'off');
 updateVoiceUi();
-if (voiceEnabled) void initializeSupertonic();
