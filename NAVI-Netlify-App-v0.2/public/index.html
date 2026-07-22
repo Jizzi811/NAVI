@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0915"><title>NAVI – Ich bin bei dir</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/voice.css"><script type="importmap">{"imports":{"https://esm.sh/gh/supertone-inc/supertonic@dff55dc00064c398736080c78195f577527832ae/web/helper.js?bundle":"/supertonic-runtime.js","onnxruntime-web":"https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.webgpu.min.mjs"}}</script></head>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0915"><title>NAVI – Ich bin bei dir</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/voice.css"></head>
 <body><main class="app">
   <header><button class="brand" onclick="goHome()"><i></i>NAVI</button><span class="status"><i></i> DEIN SICHERER RAUM</span><button id="sound" class="round" aria-label="NAVI-Stimme einschalten">🔇</button></header>
   <section id="home" class="home">
@@ -13,10 +13,10 @@
   </section>
   <section id="chat" class="chat hidden">
     <div class="chathead"><button class="back" onclick="goHome()">←</button><div class="mini"><i></i><i></i></div><div><b id="modeTitle">NAVI hört dir zu</b><small>Kein Urteil. Kein Druck.</small></div><button class="clear" onclick="clearChat()">Neu</button></div>
-    <div class="voicebar"><span class="voice-dot"></span><span id="voiceStatus">Stimme bei Bedarf einschalten</span><button id="stopVoice" class="stop-voice" type="button">Stopp</button></div>
+    <div class="voicebar"><span class="voice-dot"></span><span id="voiceStatus">Stimme ist aus · Lautsprecher zum Aktivieren</span><button id="stopVoice" class="stop-voice" type="button">Stopp</button></div>
     <div id="messages" class="messages"></div>
     <div id="crisis" class="crisis hidden"><b>Du musst da jetzt nicht allein durch.</b><span>Bei unmittelbarer Gefahr: <a href="tel:112">112</a> · TelefonSeelsorge: <a href="tel:08001110111">0800 111 0 111</a></span></div>
     <form id="form" class="composer"><button type="button" id="mic" class="mic" onclick="startVoice()" aria-label="Spracheingabe">●</button><textarea id="input" rows="1" maxlength="3000" placeholder="Erzähl mir, was gerade da ist …"></textarea><button class="send" aria-label="Senden">↑</button></form>
-    <p class="notice">NAVI ersetzt keine Psychotherapie oder medizinische Hilfe. Die lokale M5-Stimme wird erst geladen, wenn du den Lautsprecher aktivierst.</p>
+    <p class="notice">NAVI ersetzt keine Psychotherapie oder medizinische Hilfe. Die lokale M5-Stimme läuft getrennt von der Oberfläche und wird erst nach Aktivierung geladen.</p>
   </section>
-</main><script>localStorage.setItem('naviVoice','off');</script><script type="module" src="/app.js"></script></body></html>
+</main><script type="module" src="/app.js"></script></body></html>
