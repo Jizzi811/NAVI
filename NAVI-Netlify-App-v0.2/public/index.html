@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0915"><title>NAVI – Ich bin bei dir</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/voice.css"></head>
 <body><main class="app">
-  <header><button class="brand" onclick="goHome()"><i></i>NAVI</button><span class="status"><i></i> DEIN SICHERER RAUM</span><button id="sound" class="round" aria-label="NAVI-Stimme einschalten">🔇</button></header>
+  <header><button class="brand" onclick="goHome()"><i></i>NAVI</button><span class="status"><i></i> DEIN SICHERER RAUM</span><button id="sound" class="round" aria-label="NAVI-Stimme ausschalten">🔊</button></header>
   <section id="home" class="home">
     <div class="orb-side"><div id="bubble" class="bubble">Ich bin da.</div><div class="orbit"></div><div id="orb" class="orb"><div id="face" class="face"><i></i><i></i></div><span class="mouth"></span></div><div class="shadow"></div></div>
     <div class="welcome"><p class="overline">DEIN EMOTIONALER BEGLEITER</p><h1>Was brauchst du<br>gerade?</h1><p class="intro">Du musst es nicht perfekt erklären. Wähle einfach, wie NAVI heute bei dir sein darf.</p><div class="modes">
@@ -12,11 +12,11 @@
     </div></div>
   </section>
   <section id="chat" class="chat hidden">
-    <div class="chathead"><button class="back" onclick="goHome()">←</button><div class="mini"><i></i><i></i></div><div><b id="modeTitle">NAVI hört zu</b><small>Kein Urteil. Kein Druck.</small></div><button class="clear" onclick="clearChat()">Neu</button></div>
-    <div class="voicebar"><span class="voice-dot"></span><span id="voiceStatus">Stimme aus</span><select id="voiceSelect" aria-label="NAVI-Stimme auswählen"><option value="F1">Weiblich 1</option><option value="F2">Weiblich 2</option><option value="F3">Weiblich 3</option><option value="F4">Weiblich 4</option><option value="F5">Weiblich 5</option><option value="M1">Männlich 1</option><option value="M2">Männlich 2</option><option value="M3">Männlich 3</option><option value="M4">Männlich 4</option><option value="M5">Männlich 5</option></select><button id="stopVoice" class="stop-voice" type="button">Stopp</button></div>
+    <div class="chathead"><button class="back" onclick="goHome()">←</button><div class="mini"><i></i><i></i></div><div><b id="modeTitle">NAVI hört dir zu</b><small>Kein Urteil. Kein Druck.</small></div><button class="clear" onclick="clearChat()">Neu</button></div>
+    <div class="voicebar"><span class="voice-dot"></span><span id="voiceStatus">Feste NAVI-Stimme wird vorbereitet …</span><button id="stopVoice" class="stop-voice" type="button">Stopp</button></div>
     <div id="messages" class="messages"></div>
     <div id="crisis" class="crisis hidden"><b>Du musst da jetzt nicht allein durch.</b><span>Bei unmittelbarer Gefahr: <a href="tel:112">112</a> · TelefonSeelsorge: <a href="tel:08001110111">0800 111 0 111</a></span></div>
     <form id="form" class="composer"><button type="button" id="mic" class="mic" onclick="startVoice()" aria-label="Spracheingabe">●</button><textarea id="input" rows="1" maxlength="3000" placeholder="Erzähl mir, was gerade da ist …"></textarea><button class="send" aria-label="Senden">↑</button></form>
-    <p class="notice">NAVI ersetzt keine Psychotherapie oder medizinische Hilfe. Die Supertonic-Stimme wird erst nach dem Einschalten lokal im Browser geladen.</p>
+    <p class="notice">NAVI ersetzt keine Psychotherapie oder medizinische Hilfe. Die feste Supertonic-Stimme wird lokal im Browser ausgeführt.</p>
   </section>
 </main><script type="module" src="/app.js"></script></body></html>
