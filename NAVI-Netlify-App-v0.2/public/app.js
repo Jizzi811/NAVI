@@ -148,7 +148,7 @@ function clearChat() {
 function ensureVoiceWorker() {
   if (voiceWorker) return voiceWorker;
 
-  voiceWorker = new Worker('/supertonic-worker.js', { type: 'module' });
+  voiceWorker = new Worker('/supertonic-worker.js?v=worker-20260722', { type: 'module' });
 
   voiceWorker.onmessage = ({ data }) => {
     if (!data || typeof data !== 'object') return;
